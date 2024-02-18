@@ -1,0 +1,87 @@
+<html>
+<head>
+  <title>
+    500 Byte Website
+  </title>
+  <style>
+  .no-wrap
+  {
+    white-space: nowrap;
+  }
+  </style>
+</head>
+
+
+
+<body>
+  <button class="no-wrap" id="scanButton">Scan</button>
+  <button class="no-wrap" id="resetButton">Reset Page</button>
+  <p class="no-wrap" id="p1">Scan...</p>
+  <p id="p2"></p>
+
+  <script>
+    if (!("NDEFReader" in window))
+    {
+      document.getElementById("p1").innerHTML = "Web NFC is not available. Use Chrome on Android.";
+    }
+
+    function sendData(input)
+    {
+      let user = {render: input};
+      let response = fetch("/",
+      {
+        method: 'POST',
+        mode: 'cors',
+        headers:
+        {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(user)
+      });
+    }
+
+    async function scanNFC(debugmsg, usrout)
+    {
+      document.getElementById(debugmsg).innerHTML = "User clicked scan button";
+      try
+      {
+        const ndef = new NDEFReader();
+        await ndef.scan();
+        document.getElementById(debugmsg).innerHTML = "Scan started";
+
+        ndef.onreadingerror = event =>
+        {
+          document.getElementById(debugmsg).innerHTML = "Cannot read data from the NFC tag.";
+        }
+
+        ndef.onreading = event =>
+        {
+          const message = event.message;
+          for (const record of message.records)
+          {
+            const textDecoder = new TextDecoder(record.encoding);
+            document.getElementById(usrout).innerHTML = document.getElementById("p2").innerHTML + textDecoder.decode(record.data);
+          }
+          sendData("<html>" + document.documentElement.innerHTML + "</html>");
+          setTimeout("location.reload(true);",1500);
+        }
+      }
+      catch (error)
+      {
+        document.getElementById(debugmsg).innerHTML = error;
+      }
+    }
+
+    scanButton.onclick = () =>
+    {
+      scanNFC("p1", "p2");
+    };
+    resetButton.onclick = () =>
+    {
+      sendData("reset");
+      setTimeout("location.reload(true);",1500);
+    };
+  </script>
+
+</body>
+</html>
